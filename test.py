@@ -12,14 +12,14 @@ class TestKashViTSetup(unittest.TestCase):
     def test_data_directory_exists(self):
         """Test that data directory exists."""
         self.assertTrue(
-            os.path.exists("data"),
+            os.path.isdir("data"),
             "data directory should exist"
         )
     
     def test_model_checkpoints_directory_exists(self):
         """Test that model_checkpoints directory exists."""
         self.assertTrue(
-            os.path.exists("model_checkpoints"),
+            os.path.isdir("model_checkpoints"),
             "model_checkpoints directory should exist"
         )
 

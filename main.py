@@ -24,9 +24,9 @@ def main():
     print("=" * 40)
     
     # Check if required directories exist
-    if not os.path.exists("data"):
+    if not os.path.isdir("data"):
         print("Warning: 'data' directory not found")
-    if not os.path.exists("model_checkpoints"):
+    if not os.path.isdir("model_checkpoints"):
         print("Warning: 'model_checkpoints' directory not found")
     
     # Placeholder for training and testing

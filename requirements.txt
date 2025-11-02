@@ -1,0 +1,14 @@
+# PyTorch for deep learning
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Image processing
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Progress bars
+tqdm>=4.65.0
+
+# Optional: For better performance
+# If you have CUDA, install PyTorch with CUDA support:
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118

@@ -37,17 +37,31 @@ This is likely due to the training data being highly uniform (e.g., consistent f
     pip install -r requirements.txt
     ```
 
-## Dataset Format
+## Dataset
 
-The model expects the dataset to be structured in a specific way:
-- An **images folder** (`dataset/word_images/` in this project) containing all the single-word image files.
-- **Label files** (`dataset/train.txt`, `dataset/val.txt`, `dataset/test.txt`) that map an image path to its text label, separated by a tab. Each line should follow this format:
-  ```
-  dataset/word_images/123.png	word_label
-  ```
-- A **dictionary file** (`dict/koashurkhat_dict.txt`) containing all unique characters in the dataset, with each character on a new line.
+The dataset is not included in this repository due to its size. You can download it from the following link:
 
-**Note**: This repository includes a `prepare_dataset.py` script. You do not need to run this if you already have the `dataset` folder with the structure described above. This script is intended for generating the dataset from a raw source.
+**[LINK TO YOUR GOOGLE DRIVE HERE]**
+
+1.  Download the dataset `.zip` file from the link above.
+2.  Unzip the file.
+3.  Rename the resulting folder to `dataset`.
+4.  Place the `dataset` folder in the root of this project, at the same level as the `train.py` and `test.py` scripts.
+
+The final directory structure should look like this:
+```
+KashViT/
+├── dataset/
+│   ├── word_images/
+│   ├── labels/
+│   ├── train.txt
+│   ├── val.txt
+│   └── test.txt
+├── model_checkpoints/
+├── train.py
+├── test.py
+└── ...
+```
 
 ## Usage
 

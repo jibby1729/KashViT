@@ -19,7 +19,9 @@ The current best model (`best_model_epoch_58.pth`) achieves the following perfor
 ### Performance on "In-the-Wild" Images
 While the model performs well on the test set, it struggles with new images taken from different sources, such as screenshots of words from e-books. Examples of these challenging images can be found in the `unseen_tests` folder.
 
-This is likely due to the training data being highly uniform (e.g., consistent font, clean background, specific sizing). The model has become specialized to this data and does not generalize well to variations in fonts, anti-aliasing, or other digital artifacts found in real-world images. Interestingly, it can often recognize individual characters but fails to predict the entire word, suggesting the sequence processing is sensitive to these variations.
+To be honest, I am not entirely sure why the model is struggling with the new images. It might be due to the training data being highly uniform (clean background, specific sizing) or the dataset simply being too small to accomodate different fonts, anti-aliasing, or other digital artifacts found in real-world images. Interestingly, it can often recognize individual characters but fails to predict the entire word, suggesting the sequence processing is sensitive to these variations.
+
+To add test images to the `unseen_tests` folder, make sure the screenshots are of single words and are in the same format as the images in the `dataset/word_images` folder.
 
 ## Setup
 
@@ -30,11 +32,20 @@ This is likely due to the training data being highly uniform (e.g., consistent f
     ```
 
 2.  **Install Dependencies**
-    It is recommended to use a virtual environment.
+    It is recommended to use a virtual environment. First, install `uv` if you haven't already:
     ```bash
-    python -m venv venv
+    # Install uv (if not already installed)
+    # On Windows (PowerShell):
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    # On macOS/Linux:
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+    
+    Then create a virtual environment and install dependencies:
+    ```bash
+    uv venv
     source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 ## Dataset
@@ -75,7 +86,7 @@ To train the model from scratch or resume training:
 2.  Update the paths and hyperparameters in `train.py` as needed. To resume from a checkpoint, set the `RESUME_CHECKPOINT` variable.
 3.  Run the training script:
     ```bash
-    python train.py
+    uv run train.py
     ```
 Model checkpoints will be saved in the `model_checkpoints/` directory.
 
@@ -85,17 +96,17 @@ To evaluate the model's performance (Word Accuracy and Character Error Rate) on 
 1.  Update the `MODEL_CHECKPOINT` path in `test.py` to point to your desired model (e.g., `model_checkpoints/best_model_epoch_58.pth`).
 2.  Run the evaluation script:
     ```bash
-    python test.py
+    uv run test.py
     ```
 
 ### 3. Inference on New Images
 
 To transcribe your own single-word images:
 1.  Place your image files in the `unseen_tests/` folder.
-2.  For best results, take screenshots that are wide and short (approx. 10:1 width-to-height ratio) to minimize distortion.
+2.  For best results, take screenshots that are wide and short (single word screenshots) to minimize distortion.
 3.  Make sure the `MODEL_CHECKPOINT` path in `unseen.py` is set correctly.
 4.  Run the inference script:
     ```bash
-    python unseen.py
+    uv run unseen.py
     ```
 The script will print the transcribed text for each image to the console.

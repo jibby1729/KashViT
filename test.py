@@ -3,6 +3,7 @@ from train import SimpleViT, OCRDataset, load_char_dict, get_transforms, collate
 from torch.utils.data import DataLoader
 import editdistance
 from tqdm import tqdm
+import os
 
 # ==================== Configuration ====================
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -11,7 +12,7 @@ TEST_FILE = "dataset/test.txt"
 DICT_FILE = "dict/koashurkhat_dict.txt"
 
 # IMPORTANT: Set this to the path of your saved model checkpoint
-MODEL_CHECKPOINT = "model_checkpoints/best_model_epoch_40.pth" # Change this if needed
+MODEL_CHECKPOINT = "model_checkpoints/best_model_epoch_58.pth" # Change this if needed
 
 
 def test(model, dataloader, char_list, device):
@@ -22,6 +23,9 @@ def test(model, dataloader, char_list, device):
     total_char_dist = 0
     total_char_len = 0
     wrong_predictions = []
+    
+    # Get direct access to the dataset's file list
+    file_list = dataloader.dataset.data
     
     with torch.no_grad():
         for i, (images, labels, lengths) in enumerate(tqdm(dataloader, desc="Testing")):
@@ -39,9 +43,14 @@ def test(model, dataloader, char_list, device):
                 label_text = "".join([char_list[c-1] for c in labels[start:start+length]])
                 pred_text = decoded_preds[j]
                 
+                # Look up the image path using the index
+                original_index = i * dataloader.batch_size + j
+                img_path, _ = file_list[original_index]
+                img_name = os.path.basename(img_path)
+
                 # Print some examples
                 if i == 0 and j < 20: # Print first 20 examples of the first batch
-                    print(f"  - Label: {label_text}, Predicted: {pred_text}")
+                    print(f"  - Image: {img_name:<15} | Label: {label_text}, Predicted: {pred_text}")
                 
                 # Word Accuracy
                 if label_text == pred_text:
@@ -49,7 +58,7 @@ def test(model, dataloader, char_list, device):
                 else:
                     # Store the first 20 wrong predictions
                     if len(wrong_predictions) < 20:
-                        wrong_predictions.append((label_text, pred_text))
+                        wrong_predictions.append((img_name, label_text, pred_text))
                 
                 # Character Error Rate
                 total_char_dist += editdistance.eval(pred_text, label_text)
@@ -88,13 +97,13 @@ def main():
     print("\nStarting evaluation on the test set...")
     word_acc, cer, wrong_preds = test(model, test_loader, char_list, DEVICE)
     
-    print("\n" + "="*50)
-    print("           First 20 Incorrect Predictions")
-    print("="*50)
-    print(f"{'Ground Truth':<25} | {'Predicted':<25}")
-    print("-" * 50)
-    for label, pred in wrong_preds:
-        print(f"{label:<25} | {pred:<25}")
+    print("\n" + "="*80)
+    print(" " * 25 + "First 20 Incorrect Predictions")
+    print("="*80)
+    print(f"{'Image':<25} | {'Ground Truth':<25} | {'Predicted':<25}")
+    print("-" * 80)
+    for img_name, label, pred in wrong_preds:
+        print(f"{img_name:<25} | {label:<25} | {pred:<25}")
     
     print("\n" + "="*50)
     print("                Test Set Results")

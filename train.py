@@ -1,6 +1,6 @@
 """
 Simple Vision Transformer for Kashmiri OCR
-A lightweight implementation using PyTorch
+A lightweight implementation using PyTorch, approximately 900k parameters
 """
 
 import os
@@ -15,14 +15,14 @@ from tqdm import tqdm
 import numpy as np
 import editdistance
 
-# ==================== Configuration ====================
-DEVICE = torch.device('cpu')
-BATCH_SIZE = 32
-LEARNING_RATE = 0.001
-NUM_EPOCHS = 60
-IMAGE_HEIGHT = 32
-IMAGE_WIDTH = 320
-NUM_HEADS = 4
+# cfg READ THESE PROPERLY 
+DEVICE = torch.device('cuda')
+BATCH_SIZE = 32 # 32 imgs in each batch dont change
+LEARNING_RATE = 0.001 # works well enuff dont change
+NUM_EPOCHS = 100 # this represents up to where you will end. If the model you are running ran on 58 epochs, then it will start from 58 and go till 100. You might have to change this a lot 
+IMAGE_HEIGHT = 32 # don't change this and the ones below
+IMAGE_WIDTH = 320 
+NUM_HEADS = 4 
 NUM_LAYERS = 4
 EMBED_DIM = 128
 DROPOUT = 0.1
@@ -36,10 +36,10 @@ CHECKPOINT_DIR = "model_checkpoints"
 # Set this path to resume training from a saved model
 # Example: "model_checkpoints/best_model_epoch_5.pth"
 # Set to None to train from scratch
-RESUME_CHECKPOINT = "model_checkpoints/best_model_epoch_40.pth"
+RESUME_CHECKPOINT = "model_checkpoints/best_model_epoch_58.pth"
 
 
-# ==================== Dataset Class ====================
+# dealing with the dataset (mostly ignore this class)
 class OCRDataset(Dataset):
     def __init__(self, txt_file, char_dict, transform=None):
         self.data = []
@@ -76,7 +76,7 @@ class OCRDataset(Dataset):
         return img, torch.tensor(label, dtype=torch.long), len(label)
 
 
-# ==================== Simple Vision Transformer ====================
+# the ViT stuff (no need to change this either)
 class PatchEmbedding(nn.Module):
     def __init__(self, img_size=(IMAGE_HEIGHT, IMAGE_WIDTH), patch_size=16, embed_dim=EMBED_DIM):
         super().__init__()
@@ -85,8 +85,10 @@ class PatchEmbedding(nn.Module):
     
     def forward(self, x):
         x = self.conv(x)
-        x = x.flatten(2).transpose(1, 2)
+        x = x.flatten(2).transpose(1, 2) 
         return x
+
+    # this makes the 16x16 patches 
 
 class TransformerBlock(nn.Module):
     def __init__(self, embed_dim, num_heads, dropout):
@@ -103,7 +105,7 @@ class TransformerBlock(nn.Module):
     
     def forward(self, x):
         x_norm = self.norm1(x)
-        attn_out, _ = self.attn(x_norm, x_norm, x_norm)
+        attn_out, _ = self.attn(x_norm, x_norm, x_norm) # self attention part
         x = x + attn_out
         x = x + self.mlp(self.norm2(x))
         return x
@@ -134,7 +136,7 @@ class SimpleViT(nn.Module):
         return self.head(self.norm(x))
 
 
-# ==================== Helper Functions ====================
+# helper functions 
 def load_char_dict(dict_file):
     char_dict, char_list = {}, []
     with open(dict_file, 'r', encoding='utf-8') as f:
@@ -152,7 +154,8 @@ def get_transforms():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-def collate_fn(batch):
+def collate_fn(batch): 
+    """ This is just a data loader that deals with the labels having different lenghts """
     images, labels, lengths = [], [], []
     for img, label, length in batch:
         images.append(img)
@@ -161,6 +164,11 @@ def collate_fn(batch):
     return torch.stack(images), torch.tensor(labels, dtype=torch.long), lengths
 
 def decode_output(preds, char_list):
+    """
+    Decodes the raw output of the model (a sequence of probability distributions)
+    into human-readable text.
+    It collapses repeated characters and removes the CTC blank token.
+    """
     decoded_texts = []
     for pred in preds:
         sequence = torch.argmax(pred, dim=1)
@@ -222,7 +230,7 @@ def validate(model, dataloader, criterion, char_list, device):
     char_error_rate = (total_char_dist / total_char_len) * 100
     return avg_loss, word_accuracy, char_error_rate
 
-# ==================== Main Training Loop ====================
+# training loop
 def main():
     print(f"Using device: {DEVICE}")
     char_dict, char_list, num_classes = load_char_dict(DICT_FILE)
@@ -241,9 +249,9 @@ def main():
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable parameters: {total_params:,}")
     
-    criterion = CTCLoss(blank=0, reduction='mean')
+    criterion = CTCLoss(blank=0, reduction='mean') # This is a loss specific to OCR problems
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    scaler = torch.cuda.amp.GradScaler()
+    scaler = torch.cuda.amp.GradScaler() # mixed precision training, we're training on fp16 here
     
     start_epoch, best_val_loss = 0, float('inf')
     if RESUME_CHECKPOINT and os.path.exists(RESUME_CHECKPOINT):
@@ -272,7 +280,7 @@ def main():
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'val_loss': val_loss,
-            }, checkpoint_path)
+            }, checkpoint_path) # this saves the epoch number as well so you start from the epoch you trained until
             print(f"Saved best model to {checkpoint_path}")
     
     print("\nTraining complete!")

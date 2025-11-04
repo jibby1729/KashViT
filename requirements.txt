@@ -15,7 +15,7 @@ Flask>=3.0.0
 
 # Progress bars
 tqdm>=4.65.0
-
+editdistance>=0.6.0
 # Optional: For better performance
 # If you have CUDA, install PyTorch with CUDA support:
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118

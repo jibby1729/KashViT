@@ -1,27 +1,46 @@
-# Kashmiri OCR with Vision Transformer
+# Kashmiri OCR with a Robust Vision Transformer
 
-A lightweight Vision Transformer (ViT) model for Optical Character Recognition (OCR) on single words of Kashmiri text, written in PyTorch. This project provides scripts for training, evaluating, and running inference with the model.
+A Vision Transformer (ViT) model for Optical Character Recognition (OCR) on single words of Kashmiri text, written in PyTorch. This project features a robust training pipeline with significant data augmentation and an improved model architecture to enhance generalization to real-world images.
 
 ## Features
-- **Simple ViT Implementation**: Basic implementation of a ViT with MHA and Dropout. GeLU for activation.
-- **Lightweight Architecture**: The model has approximately 900k parameters, enough to do well with the dataset so far. 
-- **Specialized Loss Function**: Uses `CTCLoss`, which is ideal for sequence-to-sequence tasks like OCR where input and output lengths may vary.
-- **Complete Workflow**: Includes scripts for training, evaluation, and inference on new images.
+- **Robust ViT Architecture**: Utilizes vertical "stripe" embeddings to preserve fine details in Perso-Arabic scripts, crucial for recognizing diacritics and dots.
+- **Advanced Data Augmentation**: Employs a comprehensive on-the-fly augmentation pipeline using `Albumentations` to simulate real-world conditions (noise, blur, lighting changes, compression).
+- **Aspect-Ratio Preserving Resize**: Prevents character distortion by resizing images to a fixed height while padding the width, a critical factor for generalization.
+- **Web Interface**: Includes a simple Flask-based web app to easily test the model with your own images via file upload or clipboard paste.
+- **Complete Workflow**: Provides scripts for training, evaluation, and inference.
 
-## Pre-trained Model
-A pre-trained model is available in the `model_checkpoints/` directory. The best performing checkpoint is `best_model_epoch_58.pth`. You can use this directly for evaluation or inference.
+## Web Application Quickstart
+
+The easiest way to use the model is through the included web interface.
+
+1.  **Install Dependencies**
+    ```bash
+    # Install uv (if you haven't already)
+    pip install uv
+
+    # Create a virtual environment and install packages
+    uv venv
+    uv pip install -r requirements.txt
+    ```
+
+2.  **Run the Web App**
+    ```bash
+    uv run webpage/app.py
+    ```
+
+3.  **Use the Interface**
+    - Open your browser and navigate to `http://127.0.0.1:5000`.
+    - Click **"Select Image"** to upload an image file or press **Ctrl+V** (Cmd+V) to paste an image from your clipboard.
+    - Click **"Read Image"** to see the prediction.
 
 ## Model Performance and Limitations
-The current best model (`best_model_epoch_58.pth`) achieves the following performance on the provided test set:
-- **Word Accuracy**: ~80%
-- **Character Error Rate (CER)**: ~4%
 
-### Performance on "In-the-Wild" Images
-While the model performs well on the test set, it struggles with new images taken from different sources, such as screenshots of words from e-books. Examples of these challenging images can be found in the `unseen_tests` folder.
+The current best model is located at `best_models/best_model_epoch_95.pth`. This model was trained with the robust pipeline and achieves the following performance on the test set:
 
-To be honest, I am not entirely sure why the model is struggling with the new images. It might be due to the training data being highly uniform (clean background, specific sizing) or the dataset simply being too small to accomodate different fonts, anti-aliasing, or other digital artifacts found in real-world images. Interestingly, it can often recognize individual characters but fails to predict the entire word, suggesting the sequence processing is sensitive to these variations.
+-   **Word Accuracy**: ~87%
+-   **Character Error Rate (CER)**: ~3%
 
-To add test images to the `unseen_tests` folder, make sure the screenshots are of single words and are in the same format as the images in the `dataset/word_images` folder.
+The model performs very well on out-of-distribution digital text (e.g., screenshots from e-books, websites). However, it can still struggle with screenshots from physical textbooks, likely due to the unique fonts and lower quality printing which are not yet sufficiently represented in the training data.
 
 ## Setup
 
@@ -32,81 +51,53 @@ To add test images to the `unseen_tests` folder, make sure the screenshots are o
     ```
 
 2.  **Install Dependencies**
-    It is recommended to use a virtual environment. First, install `uv` if you haven't already:
+    It is recommended to use `uv` for fast dependency management.
     ```bash
-    # Install uv (if not already installed)
-    # On Windows (PowerShell):
-    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-    # On macOS/Linux:
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    ```
+    # Install uv (if needed)
+    pip install uv
     
-    Then create a virtual environment and install dependencies:
-    ```bash
+    # Create virtual environment and install packages
     uv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
     uv pip install -r requirements.txt
     ```
 
 ## Dataset
 
-The dataset is not included in this repository due to its size. You can download it from the following link:
+The dataset is not included in this repository. Please follow the original instructions to download and place it in the `dataset/` folder in the project root.
 
- **https://drive.google.com/drive/folders/1dxvsapqJIuGWPm1nGIHiwBxzVWgOBwcO?usp=sharing**
+## Advanced Usage: Training and Testing
 
-
-1.  Download the dataset `.zip` file from the link above.
-2.  Unzip the file.
-3.  Rename the resulting folder to `dataset`.
-4.  Place the `dataset` folder in the root of this project, at the same level as the `train.py` and `test.py` scripts.
-
-The final directory structure should look like this:
-```
-KashViT/
-├── dataset/
-│   ├── word_images/
-│   ├── labels/
-│   ├── train.txt
-│   ├── val.txt
-│   └── test.txt
-├── model_checkpoints/
-├── train.py
-├── test.py
-└── ...
-```
-
-## Usage
-
-All scripts are configured using variables at the top of each file. You can modify these to change batch sizes, learning rates, file paths, etc.
+The primary scripts for the new, robust model are located in the `newidea/` folder.
 
 ### 1. Training
 
 To train the model from scratch or resume training:
-1.  Ensure your dataset is correctly formatted.
-2.  Update the paths and hyperparameters in `train.py` as needed. To resume from a checkpoint, set the `RESUME_CHECKPOINT` variable.
-3.  Run the training script:
+
+1.  Navigate to the `newidea` directory.
     ```bash
-    uv run train.py
+    cd newidea
     ```
-Model checkpoints will be saved in the `model_checkpoints/` directory.
+2.  To train from scratch, ensure `RESUME_CHECKPOINT_FILENAME` in `trainnew.py` is set to `None`.
+3.  To resume from a checkpoint, set `RESUME_CHECKPOINT_FILENAME` to the name of your checkpoint file (e.g., `"best_model_epoch_95.pth"`).
+4.  Run the training script:
+    ```bash
+    python trainnew.py
+    ```
+    Model checkpoints will be saved in the `newidea/model_checkpoints_new/` directory.
 
 ### 2. Evaluation
 
-To evaluate the model's performance (Word Accuracy and Character Error Rate) on the test set:
-1.  Update the `MODEL_CHECKPOINT` path in `test.py` to point to your desired model (e.g., `model_checkpoints/best_model_epoch_58.pth`).
-2.  Run the evaluation script:
+To evaluate a model's performance on the test set:
+
+1.  Navigate to the `newidea` directory.
     ```bash
-    uv run test.py
+    cd newidea
+    ```
+2.  Update the `MODEL_CHECKPOINT` path in `testnew.py` to point to your desired model.
+3.  Run the evaluation script:
+    ```bash
+    python testnew.py
     ```
 
-### 3. Inference on New Images
-
-To transcribe your own single-word images:
-1.  Place your image files in the `unseen_tests/` folder.
-2.  For best results, take screenshots that are wide and short (single word screenshots) to minimize distortion.
-3.  Make sure the `MODEL_CHECKPOINT` path in `unseen.py` is set correctly.
-4.  Run the inference script:
-    ```bash
-    uv run unseen.py
-    ```
-The script will print the transcribed text for each image to the console.
+---
+*The original, less robust model and its corresponding `train.py` and `test.py` scripts are preserved in the project root for archival purposes.*

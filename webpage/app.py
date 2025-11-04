@@ -9,14 +9,16 @@ from flask import Flask, render_template, request, jsonify
 from PIL import Image
 import secrets
 from werkzeug.utils import secure_filename
+import numpy as np
 
-# Add parent directory to path to import from train.py
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add 'newidea' directory to path to import from trainnew.py and augment.py
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'newidea'))
 
-from train import SimpleViT, load_char_dict, get_transforms, decode_output
+from trainnew import SimpleViT, load_char_dict, decode_output
+from augment import get_val_transforms
 
 # Configuration
-MODEL_CHECKPOINT = "model_checkpoints/best_model_epoch_58.pth"
+MODEL_CHECKPOINT = "newidea/model_checkpoints_new/best_model_epoch_95.pth"
 DICT_FILE = "dict/koashurkhat_dict.txt"
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -44,7 +46,7 @@ def allowed_file(filename):
 
 
 def load_model():
-    """Load the OCR model and related components"""
+    """Load the new OCR model and related components"""
     global model, char_list, transform, device
     
     try:
@@ -57,9 +59,9 @@ def load_model():
         checkpoint_path = os.path.join(base_dir, MODEL_CHECKPOINT)
         dict_path = os.path.join(base_dir, DICT_FILE)
         
-        # Load character dictionary
+        # Load character dictionary (capturing the new unk_id)
         print(f"Loading dictionary from {dict_path}")
-        _, char_list, num_classes = load_char_dict(dict_path)
+        char_dict, char_list, num_classes, unk_id = load_char_dict(dict_path)
         print(f"Loaded {num_classes - 1} characters (plus blank token)")
         
         # Load model
@@ -70,8 +72,8 @@ def load_model():
         model.eval()
         print("Model loaded successfully")
         
-        # Get transforms
-        transform = get_transforms()
+        # Get the new validation transforms
+        transform = get_val_transforms()
         
     except Exception as e:
         print(f"Error loading model: {str(e)}")
@@ -112,9 +114,18 @@ def predict():
         file.save(filepath)
         
         try:
-            # Process image
-            image = Image.open(filepath).convert('RGB')
-            image_tensor = transform(image).unsqueeze(0).to(device)
+            # Process image: Load as grayscale for the new model
+            image = Image.open(filepath).convert('L')
+            
+            # Convert to numpy array for Albumentations
+            image_np = np.array(image)
+            
+            # Apply the new validation transforms
+            transformed = transform(image=image_np)
+            image_tensor = transformed['image'].unsqueeze(0).to(device)
+
+            # Convert to float and scale
+            image_tensor = image_tensor.float() / 255.0
             
             # Run inference
             with torch.no_grad():

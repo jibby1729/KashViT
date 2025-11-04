@@ -63,7 +63,28 @@ The model performs very well on out-of-distribution digital text (e.g., screensh
 
 ## Dataset
 
-The dataset is not included in this repository. Please follow the original instructions to download and place it in the `dataset/` folder in the project root.
+The dataset is not included in this repository due to its size. You can download it from the following link:
+
+ **https://drive.google.com/drive/folders/1dxvsapqJIuGWPm1nGIHiwBxzVWgOBwcO?usp=sharing**
+
+1.  Download the dataset `.zip` file from the link above.
+2.  Unzip the file.
+3.  Rename the resulting folder to `dataset`.
+4.  Place the `dataset` folder in the root of this project.
+
+The final directory structure should look like this:
+```
+KashViT/
+├── dataset/
+│   ├── word_images/
+│   ├── labels/
+│   ├── train.txt
+│   ├── val.txt
+│   └── test.txt
+├── newidea/
+├── webpage/
+└── ...
+```
 
 ## Advanced Usage: Training and Testing
 

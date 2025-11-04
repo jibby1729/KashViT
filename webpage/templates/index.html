@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kashmiri OCR</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Kashmiri OCR</h1>
+        
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <label for="image-input" class="file-input-label">Select Image</label>
+                <input type="file" id="image-input" accept="image/*">
+                <div class="selected-file" id="selected-file"></div>
+            </div>
+            
+            <button id="read-button" disabled>Read Image</button>
+        </div>
+        
+        <div class="result-section" id="result-section" style="display: none;">
+            <div class="result-label">Prediction</div>
+            <div class="prediction" id="prediction"></div>
+            <div class="uploaded-image-container" id="uploaded-image-container" style="display: none;">
+                <img id="uploaded-image" class="uploaded-image" alt="Uploaded image">
+            </div>
+        </div>
+        
+        <div class="error" id="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const readButton = document.getElementById('read-button');
+        const selectedFile = document.getElementById('selected-file');
+        const resultSection = document.getElementById('result-section');
+        const prediction = document.getElementById('prediction');
+        const error = document.getElementById('error');
+        const uploadedImageContainer = document.getElementById('uploaded-image-container');
+        const uploadedImage = document.getElementById('uploaded-image');
+        let currentImageUrl = null;
+        let currentFile = null;
+
+        // Function to handle image file selection
+        function handleImageFile(file) {
+            if (!file) {
+                selectedFile.textContent = '';
+                readButton.disabled = true;
+                currentFile = null;
+                return;
+            }
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                showError('Invalid file type. Please use a PNG or JPEG image.');
+                return;
+            }
+
+            currentFile = file;
+            selectedFile.textContent = file.name || 'Pasted image';
+            readButton.disabled = false;
+            error.style.display = 'none';
+            resultSection.style.display = 'none';
+            uploadedImageContainer.style.display = 'none';
+            
+            // Clean up previous image URL if exists
+            if (currentImageUrl) {
+                URL.revokeObjectURL(currentImageUrl);
+            }
+            
+            // Display the image preview
+            currentImageUrl = URL.createObjectURL(file);
+            uploadedImage.src = currentImageUrl;
+            uploadedImageContainer.style.display = 'block';
+        }
+
+        // Handle file selection
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            handleImageFile(file);
+        });
+
+        // Handle clipboard paste
+        document.addEventListener('paste', async function(e) {
+            const items = e.clipboardData.items;
+            
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    
+                    const blob = items[i].getAsFile();
+                    
+                    // Convert blob to File object
+                    const file = new File([blob], 'pasted-image.png', {
+                        type: blob.type || 'image/png',
+                        lastModified: Date.now()
+                    });
+                    
+                    handleImageFile(file);
+                    break;
+                }
+            }
+        });
+
+        // Handle form submission
+        readButton.addEventListener('click', async function() {
+            if (!currentFile) {
+                showError('Please select or paste an image first.');
+                return;
+            }
+
+            // Show loading state
+            readButton.disabled = true;
+            readButton.textContent = 'Processing...';
+            resultSection.style.display = 'flex';
+            prediction.textContent = 'Processing...';
+            prediction.className = 'prediction loading';
+            error.style.display = 'none';
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('image', currentFile);
+
+            try {
+                // Send prediction request
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to process image');
+                }
+
+                // Display prediction
+                prediction.textContent = data.prediction || 'No text detected';
+                prediction.className = 'prediction';
+                resultSection.style.display = 'flex';
+                
+                // Reset button and allow new upload/paste
+                readButton.disabled = false;
+                readButton.textContent = 'Read Image';
+                imageInput.value = '';
+                // Keep image displayed, don't clear it
+                // currentFile remains set so user can re-read if needed
+
+            } catch (err) {
+                showError(err.message || 'An error occurred while processing the image.');
+                readButton.disabled = false;
+                readButton.textContent = 'Read Image';
+                resultSection.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+            resultSection.style.display = 'none';
+            if (currentImageUrl) {
+                URL.revokeObjectURL(currentImageUrl);
+                currentImageUrl = null;
+            }
+            uploadedImageContainer.style.display = 'none';
+            currentFile = null;
+        }
+
+        // Add hint text for paste functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const hint = document.createElement('div');
+            hint.className = 'paste-hint';
+            hint.textContent = 'Or press Ctrl+V to paste an image';
+            hint.style.cssText = 'font-size: 0.8rem; color: #888; margin-top: 0.5rem; text-align: center;';
+            document.querySelector('.upload-section').appendChild(hint);
+        });
+    </script>
+</body>
+</html>
+

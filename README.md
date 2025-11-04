@@ -1,13 +1,13 @@
 # Kashmiri OCR with a Robust Vision Transformer
 
-A Vision Transformer (ViT) model for Optical Character Recognition (OCR) on single words of Kashmiri text, written in PyTorch. This project features a robust training pipeline with significant data augmentation and an improved model architecture to enhance generalization to real-world images.
+A Vision Transformer (ViT) model for Optical Character Recognition (OCR) on single words of Kashmiri text, written in PyTorch. This project features a robust training pipeline with data augmentation and an improved model architecture to enhance generalization to real-world images. The ViT is roughly 850k parameters, trained on a dataset of 55k images. We use MHA attention blocks and a cosine annealing scheduler for training (with AdamW optimizer), and mixed precision training (fp16) for faster training. Our activation function is GeLU. 
 
 ## Features
-- **Robust ViT Architecture**: Utilizes vertical "stripe" embeddings to preserve fine details in Perso-Arabic scripts, crucial for recognizing diacritics and dots.
-- **Advanced Data Augmentation**: Employs a comprehensive on-the-fly augmentation pipeline using `Albumentations` to simulate real-world conditions (noise, blur, lighting changes, compression).
-- **Aspect-Ratio Preserving Resize**: Prevents character distortion by resizing images to a fixed height while padding the width, a critical factor for generalization.
-- **Web Interface**: Includes a simple Flask-based web app to easily test the model with your own images via file upload or clipboard paste.
-- **Complete Workflow**: Provides scripts for training, evaluation, and inference.
+- **Robust ViT Architecture**: Utilizes vertical "stripe" embeddings to preserve fine details in Perso-Arabic scripts.
+- **Advanced Data Augmentation**: Comprehensive on-the-fly augmentation pipeline using `Albumentations` to simulate real-world conditions (noise, blur, lighting changes, compression).
+- **Aspect-Ratio Preserving Resize**: Prevents character distortion by resizing images to a fixed height while padding the width.
+- **Web Interface**: Simple Flask-based web app to easily test the model with your own images via file upload or clipboard paste.
+- **Complete Workflow**: Scripts for training, evaluation, and inference.
 
 ## Web Application Quickstart
 
@@ -35,12 +35,14 @@ The easiest way to use the model is through the included web interface.
 
 ## Model Performance and Limitations
 
-The current best model is located at `best_models/best_model_epoch_95.pth`. This model was trained with the robust pipeline and achieves the following performance on the test set:
+The model trained with the robust pipeline achieves the following performance on the **test set**:
 
--   **Word Accuracy**: ~87%
--   **Character Error Rate (CER)**: ~3%
+-   **Word Accuracy**: ~90.4%
+-   **Character Error Rate (CER)**: ~2.2%
 
-The model performs very well on out-of-distribution digital text (e.g., screenshots from e-books, websites). However, it can still struggle with screenshots from physical textbooks, likely due to the unique fonts and lower quality printing which are not yet sufficiently represented in the training data.
+The best performing checkpoint from the training run is located at `newidea/model_checkpoints_new/best_model_epoch_150.pth`.
+
+The model performs very well on out-of-distribution digital text (e.g., screenshots from e-books, websites). I've been testing on screenshots from instagram pages like @kashmiridictionary and it performs extremely well there (due to them using a font that is present in the training data). However, it can still struggle with screenshots from physical textbooks, likely due to the unique fonts and lower quality printing which are not yet sufficiently represented in the training data.
 
 ## Setup
 

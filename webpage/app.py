@@ -18,7 +18,7 @@ from trainnew import SimpleViT, load_char_dict, decode_output
 from augment import get_val_transforms
 
 # Configuration
-MODEL_CHECKPOINT = "newidea/model_checkpoints_new/best_model_epoch_95.pth"
+MODEL_CHECKPOINT = "newidea/model_checkpoints_new/best_model_epoch_150.pth"
 DICT_FILE = "dict/koashurkhat_dict.txt"
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB

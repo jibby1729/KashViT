@@ -15,6 +15,7 @@ from PIL import Image
 from tqdm import tqdm
 import numpy as np
 import editdistance
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 # Import augmentation transforms
 from augment import get_train_transforms, get_val_transforms, pil_to_numpy, IMG_H, MAX_W
@@ -42,7 +43,7 @@ CHECKPOINT_DIR = os.path.join(PROJECT_ROOT, "newidea/model_checkpoints_new")
 # Set this path to resume training from a saved model
 # Set to None to train from scratch
 # IMPORTANT: Only set the filename here. The full path is constructed below.
-RESUME_CHECKPOINT_FILENAME = "best_model_epoch_95.pth" # e.g., "best_model_epoch_10.pth" or None
+RESUME_CHECKPOINT_FILENAME = "best_model_epoch_125.pth" # e.g., "best_model_epoch_10.pth" or None
 
 RESUME_CHECKPOINT = os.path.join(CHECKPOINT_DIR, RESUME_CHECKPOINT_FILENAME) if RESUME_CHECKPOINT_FILENAME else None
 
@@ -266,7 +267,7 @@ def decode_output(preds, char_list):
     return decoded_texts
 
 
-def train_epoch(model, dataloader, criterion, optimizer, scaler, device, use_amp=True):
+def train_epoch(model, dataloader, criterion, optimizer, scaler, device, use_amp=True, scheduler=None):
     """Training epoch."""
     model.train()
     total_loss = 0
@@ -284,6 +285,11 @@ def train_epoch(model, dataloader, criterion, optimizer, scaler, device, use_amp
             
             optimizer.zero_grad()
             scaler.scale(loss).backward()
+            
+            # Clip gradients after backward pass
+            scaler.unscale_(optimizer) # Unscale for clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
             scaler.step(optimizer)
             scaler.update()
         else:
@@ -296,8 +302,16 @@ def train_epoch(model, dataloader, criterion, optimizer, scaler, device, use_amp
             
             optimizer.zero_grad()
             loss.backward()
+
+            # Clip gradients after backward pass
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            
             optimizer.step()
         
+        # Step the scheduler at each iteration
+        if scheduler is not None:
+            scheduler.step()
+
         total_loss += loss.item()
     return total_loss / len(dataloader)
 
@@ -373,7 +387,14 @@ def main():
     print(f"Trainable parameters: {total_params:,}")
     
     criterion = CTCLoss(blank=0, reduction='mean')
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    
+    # Use AdamW optimizer
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+
+    # Use Cosine Annealing scheduler
+    # T_max is the total number of training steps. len(train_loader) * NUM_EPOCHS
+    scheduler = CosineAnnealingLR(optimizer, T_max=len(train_loader) * NUM_EPOCHS, eta_min=1e-5)
+
     scaler = torch.cuda.amp.GradScaler() if DEVICE.type == 'cuda' else None
     
     # For CPU-only systems, we need to handle autocast differently
@@ -394,7 +415,7 @@ def main():
     for epoch in range(start_epoch, NUM_EPOCHS):
         print(f"\nEpoch {epoch+1}/{NUM_EPOCHS}")
         print("-" * 50)
-        train_loss = train_epoch(model, train_loader, criterion, optimizer, scaler, DEVICE, use_amp)
+        train_loss = train_epoch(model, train_loader, criterion, optimizer, scaler, DEVICE, use_amp, scheduler)
         val_loss, word_acc, char_err_rate = validate(model, val_loader, criterion, char_list, DEVICE, use_amp)
         print(f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Word Acc: {word_acc:.2f}% | CER: {char_err_rate:.2f}%")
         

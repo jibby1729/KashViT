@@ -1,98 +1,82 @@
+"""
+Testing script for the robust OCR model on the combined clean_dataset.
+"""
+
 import torch
-from train import SimpleViT, OCRDataset, load_char_dict, get_transforms, collate_fn, decode_output
 from torch.utils.data import DataLoader
 import editdistance
 from tqdm import tqdm
 import os
 
-# ==================== Configuration ====================
+# Import from our new training and transform scripts
+from train import SimpleViT, OCRDataset, load_char_dict, collate_fn, decode_output
+from transform import get_val_transforms
+
+# --- Configuration ---
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BATCH_SIZE = 32
-TEST_FILE = "dataset/test.txt"
-DICT_FILE = "dict/koashurkhat_dict.txt"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# IMPORTANT: Set this to the path of your saved model checkpoint
-MODEL_CHECKPOINT = "model_checkpoints/best_model_epoch_58.pth" # Change this if needed
+# --- Updated Paths ---
+TEST_FILE = os.path.join(PROJECT_ROOT, "clean_dataset/test.txt")
+DICT_FILE = os.path.join(PROJECT_ROOT, "dict/koashurkhat_dict.txt")
 
+# --- IMPORTANT: Update this to the path of your newly trained model ---
+MODEL_CHECKPOINT = os.path.join(PROJECT_ROOT, "model_checkpoints/epoch_382.pth") # Update X
 
 def test(model, dataloader, char_list, device):
-    """Test the model and calculate accuracy"""
     model.eval()
-    total_correct_words = 0
-    total_words = 0
-    total_char_dist = 0
-    total_char_len = 0
+    total_correct_words, total_words, total_char_dist, total_char_len = 0, 0, 0, 0
     wrong_predictions = []
-    
-    # Get direct access to the dataset's file list
     file_list = dataloader.dataset.data
     
     with torch.no_grad():
         for i, (images, labels, lengths) in enumerate(tqdm(dataloader, desc="Testing")):
             images = images.to(device)
-            
-            # Forward pass
-            outputs = model(images)
-            preds = outputs.cpu()
-            
-            # Decode predictions and labels
-            decoded_preds = decode_output(preds, char_list)
+            outputs = model(images).cpu()
+            decoded_preds = decode_output(outputs, char_list)
             
             start = 0
             for j, length in enumerate(lengths):
                 label_text = "".join([char_list[c-1] for c in labels[start:start+length]])
                 pred_text = decoded_preds[j]
                 
-                # Look up the image path using the index
                 original_index = i * dataloader.batch_size + j
                 img_path, _ = file_list[original_index]
                 img_name = os.path.basename(img_path)
 
-                # Print some examples
-                if i == 0 and j < 20: # Print first 20 examples of the first batch
-                    print(f"  - Image: {img_name:<15} | Label: {label_text}, Predicted: {pred_text}")
-                
-                # Word Accuracy
                 if label_text == pred_text:
                     total_correct_words += 1
-                else:
-                    # Store the first 20 wrong predictions
-                    if len(wrong_predictions) < 20:
-                        wrong_predictions.append((img_name, label_text, pred_text))
+                elif len(wrong_predictions) < 20:
+                    wrong_predictions.append((img_name, label_text, pred_text))
                 
-                # Character Error Rate
                 total_char_dist += editdistance.eval(pred_text, label_text)
                 total_char_len += len(label_text)
-                
                 start += length
-            
             total_words += len(lengths)
             
     word_accuracy = (total_correct_words / total_words) * 100
     char_error_rate = (total_char_dist / total_char_len) * 100
-    
     return word_accuracy, char_error_rate, wrong_predictions
 
-
 def main():
+    if not os.path.exists(MODEL_CHECKPOINT):
+        print(f"Error: Checkpoint not found at '{MODEL_CHECKPOINT}'")
+        print("Please update the MODEL_CHECKPOINT variable in test.py to point to a valid trained model.")
+        return
+
     print(f"Using device: {DEVICE}")
     print(f"Loading model from: {MODEL_CHECKPOINT}")
     
-    # Load character dictionary
-    char_dict, char_list, num_classes = load_char_dict(DICT_FILE)
+    char_dict, char_list, num_classes, unk_id = load_char_dict(DICT_FILE)
+    print(f"Loaded {num_classes-1} characters (plus blank token)")
     
-    # Load model checkpoint
     checkpoint = torch.load(MODEL_CHECKPOINT, map_location=DEVICE)
-    
-    # Initialize model
     model = SimpleViT(num_classes=num_classes).to(DEVICE)
     model.load_state_dict(checkpoint['model_state_dict'])
     
-    # Create test dataset and loader
-    transform = get_transforms()
-    test_dataset = OCRDataset(TEST_FILE, char_dict, transform)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False,
-                            collate_fn=collate_fn, num_workers=8)
+    test_dataset = OCRDataset(TEST_FILE, char_dict, unk_id, get_val_transforms())
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_fn, num_workers=4)
                             
     print("\nStarting evaluation on the test set...")
     word_acc, cer, wrong_preds = test(model, test_loader, char_list, DEVICE)
@@ -111,7 +95,6 @@ def main():
     print(f"  - Word Accuracy: {word_acc:.2f}%")
     print(f"  - Character Error Rate (CER): {cer:.2f}%")
     print("="*50)
-
 
 if __name__ == "__main__":
     main()

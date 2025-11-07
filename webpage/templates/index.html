@@ -21,8 +21,15 @@
         </div>
         
         <div class="result-section" id="result-section" style="display: none;">
-            <div class="result-label">Prediction</div>
-            <div class="prediction" id="prediction"></div>
+            <div class="prediction-container">
+                <div class="result-label">Pred 1</div>
+                <div class="prediction" id="prediction1"></div>
+            </div>
+            <div class="separator"></div>
+            <div class="prediction-container">
+                <div class="result-label">Pred 2</div>
+                <div class="prediction" id="prediction2"></div>
+            </div>
             <div class="uploaded-image-container" id="uploaded-image-container" style="display: none;">
                 <img id="uploaded-image" class="uploaded-image" alt="Uploaded image">
             </div>
@@ -36,7 +43,8 @@
         const readButton = document.getElementById('read-button');
         const selectedFile = document.getElementById('selected-file');
         const resultSection = document.getElementById('result-section');
-        const prediction = document.getElementById('prediction');
+        const prediction1 = document.getElementById('prediction1');
+        const prediction2 = document.getElementById('prediction2');
         const error = document.getElementById('error');
         const uploadedImageContainer = document.getElementById('uploaded-image-container');
         const uploadedImage = document.getElementById('uploaded-image');
@@ -116,8 +124,10 @@
             readButton.disabled = true;
             readButton.textContent = 'Processing...';
             resultSection.style.display = 'flex';
-            prediction.textContent = 'Processing...';
-            prediction.className = 'prediction loading';
+            prediction1.textContent = '...';
+            prediction2.textContent = '...';
+            prediction1.className = 'prediction loading';
+            prediction2.className = 'prediction loading';
             error.style.display = 'none';
 
             // Create FormData
@@ -137,9 +147,11 @@
                     throw new Error(data.error || 'Failed to process image');
                 }
 
-                // Display prediction
-                prediction.textContent = data.prediction || 'No text detected';
-                prediction.className = 'prediction';
+                // Display predictions
+                prediction1.textContent = data.prediction1 || 'No text detected';
+                prediction2.textContent = data.prediction2 || 'No text detected';
+                prediction1.className = 'prediction';
+                prediction2.className = 'prediction';
                 resultSection.style.display = 'flex';
                 
                 // Reset button and allow new upload/paste

@@ -21,7 +21,7 @@ TEST_FILE = os.path.join(PROJECT_ROOT, "dataset/test.txt")
 DICT_FILE = os.path.join(PROJECT_ROOT, "dict/koashurkhat_dict.txt")
 
 # IMPORTANT: Set this to the path of your saved model checkpoint
-MODEL_CHECKPOINT = os.path.join(PROJECT_ROOT, "newidea/model_checkpoints_new/best_model_epoch_150.pth")  # Update X
+MODEL_CHECKPOINT = os.path.join(PROJECT_ROOT, "newidea/model_checkpoints_new/best_model_epoch_214.pth")  # Update X
 
 
 def test(model, dataloader, char_list, device):

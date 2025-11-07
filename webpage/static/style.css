@@ -94,10 +94,13 @@ button:disabled {
 
 .result-section {
     width: 100%;
+    /* Change 1: Use flex row to place items side-by-side */
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: row;
+    align-items: stretch; /* Make containers same height */
+    justify-content: center; /* Center them */
+    flex-wrap: wrap; /* Allow image to wrap below */
+    gap: 0; /* Change 2: Remove gap between flex items */
     margin-top: 1rem;
 }
 
@@ -114,12 +117,10 @@ button:disabled {
     text-align: center;
     word-break: break-word;
     padding: 1.5rem;
-    border: 2px solid #ffffff;
-    min-height: 100px;
-    display: flex;
-    align-items: center;
     justify-content: center;
     width: 100%;
+    /* Change 3: Remove individual border */
+    border: none;
 }
 
 .uploaded-image-container {
@@ -153,3 +154,40 @@ button:disabled {
     width: 100%;
 }
 
+.result-section {
+    flex-direction: column; /* Stack prediction boxes above the image */
+    align-items: center;
+    width: 100%;
+}
+
+.prediction-boxes {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+    border: 1px solid #444;
+    border-radius: 8px;
+    margin-bottom: 20px; /* Space between boxes and image */
+}
+
+.prediction-container {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+    /* Change 4: Add border to containers instead of predictions */
+    border: 2px solid #ffffff;
+}
+
+/* Change 5: Style the separator */
+.separator {
+    width: 2px;
+    background-color: #ffffff;
+    /* Remove margin to make them touch */
+}
+
+/* Make uploaded image appear below the prediction boxes */
+.uploaded-image-container {
+    width: 100%;
+    max-width: 700px;
+    margin-top: 20px;
+}

@@ -15,7 +15,7 @@ from PIL import Image
 from tqdm import tqdm
 import numpy as np
 import editdistance
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts
 
 # Import augmentation transforms
 from augment import get_train_transforms, get_val_transforms, pil_to_numpy, IMG_H, MAX_W
@@ -24,7 +24,7 @@ from augment import get_train_transforms, get_val_transforms, pil_to_numpy, IMG_
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 150
+NUM_EPOCHS = 300
 PATCH_W = 4  # Width of each vertical stripe (64 height x 4 width patches)
 NUM_HEADS = 4
 NUM_LAYERS = 4
@@ -43,7 +43,7 @@ CHECKPOINT_DIR = os.path.join(PROJECT_ROOT, "newidea/model_checkpoints_new")
 # Set this path to resume training from a saved model
 # Set to None to train from scratch
 # IMPORTANT: Only set the filename here. The full path is constructed below.
-RESUME_CHECKPOINT_FILENAME = "best_model_epoch_125.pth" # e.g., "best_model_epoch_10.pth" or None
+RESUME_CHECKPOINT_FILENAME = "best_model_epoch_200.pth" # e.g., "best_model_epoch_10.pth" or None
 
 RESUME_CHECKPOINT = os.path.join(CHECKPOINT_DIR, RESUME_CHECKPOINT_FILENAME) if RESUME_CHECKPOINT_FILENAME else None
 
@@ -377,9 +377,9 @@ def main():
     val_dataset = OCRDataset(VAL_FILE, char_dict, unk_id, val_transform)
     
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
-                             collate_fn=collate_fn, num_workers=12, pin_memory=True)
+                             collate_fn=collate_fn, num_workers=8, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False,
-                           collate_fn=collate_fn, num_workers=12, pin_memory=True)
+                           collate_fn=collate_fn, num_workers=8, pin_memory=True)
     
     # Initialize model
     model = SimpleViT(num_classes=num_classes).to(DEVICE)
@@ -391,9 +391,11 @@ def main():
     # Use AdamW optimizer
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
 
-    # Use Cosine Annealing scheduler
-    # T_max is the total number of training steps. len(train_loader) * NUM_EPOCHS
-    scheduler = CosineAnnealingLR(optimizer, T_max=len(train_loader) * NUM_EPOCHS, eta_min=1e-5)
+    # Use Cosine Annealing with Warm Restarts scheduler
+    scheduler = CosineAnnealingWarmRestarts(optimizer, 
+                                            T_0=20 * len(train_loader), # T_0 is epochs per cycle * steps_per_epoch
+                                            T_mult=1, # Keep cycle length constant
+                                            eta_min=1e-5)
 
     scaler = torch.cuda.amp.GradScaler() if DEVICE.type == 'cuda' else None
     

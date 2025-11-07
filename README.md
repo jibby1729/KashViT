@@ -1,126 +1,143 @@
-# Kashmiri OCR with a Robust Vision Transformer
+# Kashmiri OCR with Vision Transformers
 
-A Vision Transformer (ViT) model for Optical Character Recognition (OCR) on single words of Kashmiri text, written in PyTorch. This project features a robust training pipeline with data augmentation and an improved model architecture to enhance generalization to real-world images. The ViT is roughly 850k parameters, trained on a dataset of 55k images. We use MHA attention blocks and a cosine annealing scheduler for training (with AdamW optimizer), and mixed precision training (fp16) for faster training. Our activation function is GeLU. 
+This project provides a complete workflow for training and deploying robust Vision Transformer (ViT) models for Optical Character Recognition (OCR) on single words of Kashmiri text. It includes scripts for data processing, training, evaluation, and a simple web interface for live predictions.
 
 ## Features
-- **Robust ViT Architecture**: Utilizes vertical "stripe" embeddings to preserve fine details in Perso-Arabic scripts.
-- **Advanced Data Augmentation**: Comprehensive on-the-fly augmentation pipeline using `Albumentations` to simulate real-world conditions (noise, blur, lighting changes, compression).
-- **Aspect-Ratio Preserving Resize**: Prevents character distortion by resizing images to a fixed height while padding the width.
-- **Web Interface**: Simple Flask-based web app to easily test the model with your own images via file upload or clipboard paste.
-- **Complete Workflow**: Scripts for training, evaluation, and inference.
+- **Two Pre-trained Models**: Includes two distinct ViT models with different training data and augmentation strategies.
+- **Advanced Data Augmentation**: Comprehensive on-the-fly augmentation pipelines using `Albumentations` to simulate real-world conditions.
+- **Robust Data Cleaning**: A full pipeline to combine, clean, and prepare disparate datasets for training.
+- **Web Interface**: A Flask-based web app to compare the two models side-by-side with your own images.
+- **Complete Workflow**: Scripts for training, evaluation, and inference for both model pipelines.
 
-## Web Application Quickstart
+## Quickstart & Demo
 
-The easiest way to use the model is through the included web interface.
+The easiest way to test and compare the models is through the included web interface.
 
 1.  **Install Dependencies**
+    It is recommended to use `uv` for fast dependency management.
     ```bash
     # Install uv (if you haven't already)
     pip install uv
 
     # Create a virtual environment and install packages
     uv venv
+    source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
     uv pip install -r requirements.txt
     ```
 
 2.  **Run the Web App**
     ```bash
-    uv run webpage/app.py
+    python webpage/app.py
     ```
 
 3.  **Use the Interface**
     - Open your browser and navigate to `http://127.0.0.1:5000`.
-    - Click **"Select Image"** to upload an image file or press **Ctrl+V** (Cmd+V) to paste an image from your clipboard.
-    - Click **"Read Image"** to see the prediction.
+    - The interface allows you to either click **"Select Image"** to upload a file or simply press **Ctrl+V** (Cmd+V on Mac) to paste an image directly from your clipboard.
+    - Click **"Read Image"** to see the predictions from both models appear side-by-side.
 
-## Model Performance and Limitations
+## Data Setup
 
-The model trained with the robust pipeline achieves the following performance on the **test set**:
+This project uses two distinct datasets. The web app works out-of-the-box, but to run the training or testing scripts, you will need to download the relevant data.
 
--   **Word Accuracy**: ~90.4%
--   **Character Error Rate (CER)**: ~2.2%
+### 1. `clean_dataset` (For `largertrained.pth`)
 
-The best performing checkpoint from the training run is located at `newidea/model_checkpoints_new/best_model_epoch_150.pth`.
+This is the combined and cleaned dataset of ~100,000 images used to train the primary model (`best_models/largertrained.pth`). The data was sourced from:
+- [Omarrran/40K Kashmiri Dataset (Hugging Face)](https://huggingface.co/datasets/Omarrran/40K_kashmiri_text_and_image_dataset)
+- [Kashmiri-OCR (Kaggle)](https://www.kaggle.com/datasets/nawabhussaen/kashmiri-ocr)
 
-The model performs very well on out-of-distribution digital text (e.g., screenshots from e-books, websites). I've been testing on screenshots from instagram pages like @kashmiridictionary and it performs extremely well there (due to them using a font that is present in the training data). However, it can still struggle with screenshots from physical textbooks, likely due to the unique fonts and lower quality printing which are not yet sufficiently represented in the training data.
+The `train.txt`, `val.txt`, and `test.txt` split files are included in the repository. To use them, you must download the raw images and place them in the `clean_dataset/images/` folder. The final structure should be:
+```
+clean_dataset/
+├── images/
+│   ├── 0.png, 1.png, ...
+├── labels.csv
+├── train.txt
+├── val.txt
+└── test.txt
+```
 
-## Setup
+### 2. `dataset` (For `kaggletrained.pth`)
 
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/your-username/KashViT.git
-    cd KashViT
-    ```
+This is the original ~70k image Kaggle dataset used to train the secondary model (`best_models/kaggletrained.pth`). This is required to run the scripts in the `newidea/` folder. A pre-packaged version is available at the link below.
 
-2.  **Install Dependencies**
-    It is recommended to use `uv` for fast dependency management.
-    ```bash
-    # Install uv (if needed)
-    pip install uv
-    
-    # Create virtual environment and install packages
-    uv venv
-    uv pip install -r requirements.txt
-    ```
+1.  **Download from Google Drive**: [https://drive.google.com/drive/folders/1dxvsapqJIuGWPm1nGIHiwBxzVWgOBwcO?usp=sharing](https://drive.google.com/drive/folders/1dxvsapqJIuGWPm1nGIHiwBxzVWgOBwcO?usp=sharing)
+2.  Unzip the file and place the resulting `dataset` folder in the root of this project.
 
-## Dataset
-
-The dataset is not included in this repository due to its size. You can download it from the following link:
-
- **https://drive.google.com/drive/folders/1dxvsapqJIuGWPm1nGIHiwBxzVWgOBwcO?usp=sharing**
-
-1.  Download the dataset `.zip` file from the link above.
-2.  Unzip the file.
-3.  Rename the resulting folder to `dataset`.
-4.  Place the `dataset` folder in the root of this project.
-
-The final directory structure should look like this:
+The final project structure should look like this:
 ```
 KashViT/
 ├── dataset/
 │   ├── word_images/
 │   ├── labels/
-│   ├── train.txt
-│   ├── val.txt
-│   └── test.txt
+│   ├── train.txt, val.txt, test.txt
+├── clean_dataset/
+│   ├── images/
+│   ├── labels.csv, train.txt, val.txt, test.txt
 ├── newidea/
-├── webpage/
 └── ...
 ```
 
-## Advanced Usage: Training and Testing
+### Data Cleaning and Preparation
 
-The primary scripts for the new, robust model are located in the `newidea/` folder.
+Before training the primary model, the datasets were combined and cleaned to create a unified, high-quality dataset of approximately 100,000 images. The process included:
+- **Inverting Images**: All images with white text on a black background were inverted to a standard black-text-on-white format to ensure consistency.
+- **Filtering Labels**: Any labels containing non-Kashmiri characters were removed. Specifically, only labels composed entirely of characters found in the `dict/koashurkhat_dict.txt` file were kept. This dictionary contains 64 unique Kashmiri characters. The model is trained on these 64 characters plus a special "blank" token required by the CTC loss function.
+- **Removing Corrupt Images**: Any corrupted or unreadable image files were discarded.
 
-### 1. Training
+This cleaned data was then used to create the `clean_dataset` with an 80/10/10 split for training, validation, and testing.
 
-To train the model from scratch or resume training:
+## The Models
 
-1.  Navigate to the `newidea` directory.
+Both models are Vision Transformers of ~840k parameters, using 4 transformer layers, 4 attention heads, and an embedding dimension of 128. They were trained with a batch size of 32 using the AdamW optimizer and a GELU activation function.
+
+### Model 1: `best_models/largertrained.pth` (Primary)
+
+- **Training Data**: Trained on the combined and cleaned `clean_dataset` of ~100k images.
+- **Augmentation**: Uses a more extensive augmentation pipeline (`transform.py`).
+- **Input Transform**: Expects a grayscale image. The pipeline automatically inverts white-on-black images and normalizes the image to a `[-1, 1]` range.
+- **Performance**: **88.06%** Word Accuracy and **2.87%** CER on `clean_dataset/test.txt`.
+- **Usage**: To train this model, use `train.py`. To evaluate it, use `test.py`. To resume training from this checkpoint, update the `RESUME_CHECKPOINT` variable in `train.py`.
+
+### Model 2: `best_models/kaggletrained.pth` (Secondary)
+
+- **Training Data**: Trained *only* on the original ~70k Kaggle `dataset`.
+- **Augmentation**: Uses a simpler augmentation pipeline (`newidea/augment.py`).
+- **Input Transform**: Expects a grayscale image, resized and scaled to a `[0, 1]` range.
+- **Performance**: **93.33%** Word Accuracy and **1.50%** CER on `dataset/test.txt`.
+- **Usage**: To train this model, use `newidea/trainnew.py`. To evaluate it, use `newidea/testnew.py`. To resume training from this checkpoint, update the `RESUME_CHECKPOINT` variable in `newidea/trainnew.py`.
+
+## Inference on Unseen Images
+
+To run inference on a folder of your own images (e.g., the images in `unseen_tests/`), you can use the provided scripts.
+
+-   **For the Primary Model (`largertrained.pth`)**:
     ```bash
-    cd newidea
+    python unnseen.py
     ```
-2.  To train from scratch, ensure `RESUME_CHECKPOINT_FILENAME` in `trainnew.py` is set to `None`.
-3.  To resume from a checkpoint, set `RESUME_CHECKPOINT_FILENAME` to the name of your checkpoint file (e.g., `"best_model_epoch_95.pth"`).
-4.  Run the training script:
+    *Note: You may need to update the `MODEL_CHECKPOINT` path inside the script.*
+
+-   **For the Secondary Model (`kaggletrained.pth`)**:
     ```bash
-    python trainnew.py
+    python challenge_newidea.py
     ```
-    Model checkpoints will be saved in the `newidea/model_checkpoints_new/` directory.
+    *Note: You may need to update the `MODEL_CHECKPOINT` path inside the script.*
 
-### 2. Evaluation
+## Limitations
 
-To evaluate a model's performance on the test set:
+The models show strong performance on digitally generated text. However, they are still not able to generalize well to non-digitized text, such as handwriting or photographs of text printed on paper.
 
-1.  Navigate to the `newidea` directory.
-    ```bash
-    cd newidea
-    ```
-2.  Update the `MODEL_CHECKPOINT` path in `testnew.py` to point to your desired model.
-3.  Run the evaluation script:
-    ```bash
-    python testnew.py
-    ```
+## Citation
+If you use the 40K dataset component, please cite the original author:
+```bibtex
+@misc{dataset2024,
+  title        = {Omarrran/40K_kashmiri_text_and_image_dataset},
+  author       = {HAQ NAWAZ MALIK},
+  year         = {2024},
+  url          = {https://huggingface.co/datasets/Omarrran/40K_kashmiri_text_and_image_dataset/},
+  note         = {Contains 40,799 images with labels }
+}
+```
 
----
-*The original, less robust model and its corresponding `train.py` and `test.py` scripts are preserved in the project root for archival purposes.*
+## Reproducibility Note
+
+The `clean_dataset` was generated using the `combine_datasets.py` script. This script handles the downloading, cleaning, filtering, and splitting of the raw datasets mentioned above. Users interested in the exact data preparation workflow can refer to this script.

@@ -10,7 +10,7 @@ A minimalistic web interface for the Kashmiri OCR model, built with Flask.
    ```
 
 2. **Ensure model files are available**:
-   - Model checkpoint: `model_checkpoints/best_model_epoch_58.pth`
+   - Model checkpoint: `insert file path here`
    - Dictionary file: `dict/koashurkhat_dict.txt`
 
 ## Running the Application

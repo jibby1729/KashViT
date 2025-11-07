@@ -100,6 +100,11 @@ Both models are Vision Transformers of ~840k parameters, using 4 transformer lay
 - **Augmentation**: Uses a more extensive augmentation pipeline (`transform.py`).
 - **Input Transform**: All input images are converted to grayscale. The pipeline then automatically inverts white-on-black images and normalizes the image to a `[-1, 1]` range.
 - **Performance**: **88.06%** Word Accuracy and **2.87%** CER on `clean_dataset/test.txt`.
+
+A detailed breakdown of the model's accuracy per word length on the test set is shown below. This reveals that the model performs consistently well across various word lengths, with a slight dip in performance on very short (1-2 characters) or very long (8+ characters) words. This is an analysis on the test set of course, but it shows that the model is able to generalize well to the test set.
+
+![Word Length Accuracy](word_length_accuracy_histogram.png)
+
 - **Usage**: To train this model, use `train.py`. To evaluate it, use `test.py`. To resume training from this checkpoint, update the `RESUME_CHECKPOINT` variable in `train.py`.
 
 ### Model 2: `best_models/kaggletrained.pth` (Secondary)

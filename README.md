@@ -26,8 +26,9 @@ The easiest way to test and compare the models is through the included web inter
     ```
 
 2.  **Run the Web App**
+    Make sure you are in the root directory of the project.
     ```bash
-    python webpage/app.py
+    uv run python webpage/app.py
     ```
 
 3.  **Use the Interface**

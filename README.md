@@ -41,11 +41,15 @@ This project uses two distinct datasets. The web app works out-of-the-box, but t
 
 ### 1. `clean_dataset` (For `largertrained.pth`)
 
-This is the combined and cleaned dataset of ~100,000 images used to train the primary model (`best_models/largertrained.pth`). The data was sourced from:
-- [Omarrran/40K Kashmiri Dataset (Hugging Face)](https://huggingface.co/datasets/Omarrran/40K_kashmiri_text_and_image_dataset)
-- [Kashmiri-OCR (Kaggle)](https://www.kaggle.com/datasets/nawabhussaen/kashmiri-ocr)
+This is the combined and cleaned dataset of ~100,000 images used to train the primary model (`best_models/largertrained.pth`). The data was sourced from the datasets listed below but has been processed for quality and consistency.
 
-The `train.txt`, `val.txt`, and `test.txt` split files are included in the repository. To use them, you must download the raw images and place them in the `clean_dataset/images/` folder. The final structure should be:
+The `train.txt`, `val.txt`, and `test.txt` split files are included in the repository. To use them, you must download the prepared images and labels file from the link below.
+
+1.  **Download from Google Drive**: [https://drive.google.com/file/d/1givlj74GUnJT3PNxUU4c_XBsLbRAlku6/view?usp=sharing](https://drive.google.com/file/d/1givlj74GUnJT3PNxUU4c_XBsLbRAlku6/view?usp=sharing)
+2.  Unzip the file.
+3.  Place the extracted `images/` folder and `labels.csv` file inside the `clean_dataset/` directory.
+
+The final structure should be:
 ```
 clean_dataset/
 ├── images/
@@ -94,7 +98,7 @@ Both models are Vision Transformers of ~840k parameters, using 4 transformer lay
 
 - **Training Data**: Trained on the combined and cleaned `clean_dataset` of ~100k images.
 - **Augmentation**: Uses a more extensive augmentation pipeline (`transform.py`).
-- **Input Transform**: Expects a grayscale image. The pipeline automatically inverts white-on-black images and normalizes the image to a `[-1, 1]` range.
+- **Input Transform**: All input images are converted to grayscale. The pipeline then automatically inverts white-on-black images and normalizes the image to a `[-1, 1]` range.
 - **Performance**: **88.06%** Word Accuracy and **2.87%** CER on `clean_dataset/test.txt`.
 - **Usage**: To train this model, use `train.py`. To evaluate it, use `test.py`. To resume training from this checkpoint, update the `RESUME_CHECKPOINT` variable in `train.py`.
 
@@ -102,7 +106,7 @@ Both models are Vision Transformers of ~840k parameters, using 4 transformer lay
 
 - **Training Data**: Trained *only* on the original ~70k Kaggle `dataset`.
 - **Augmentation**: Uses a simpler augmentation pipeline (`newidea/augment.py`).
-- **Input Transform**: Expects a grayscale image, resized and scaled to a `[0, 1]` range.
+- **Input Transform**: All input images are converted to grayscale. The pipeline then resizes the image (preserving aspect ratio) and scales it to a `[0, 1]` range.
 - **Performance**: **93.33%** Word Accuracy and **1.50%** CER on `dataset/test.txt`.
 - **Usage**: To train this model, use `newidea/trainnew.py`. To evaluate it, use `newidea/testnew.py`. To resume training from this checkpoint, update the `RESUME_CHECKPOINT` variable in `newidea/trainnew.py`.
 
